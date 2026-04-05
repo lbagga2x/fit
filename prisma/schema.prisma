@@ -1,0 +1,75 @@
+// Task 1: Prisma Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── User ────────────────────────────────────────────────────────────────────
+model User {
+  id        String    @id @default(cuid())
+  name      String    @default("Lav")
+  weight    Float     @default(73)
+  createdAt DateTime  @default(now())
+  workouts  Workout[]
+}
+
+// ─── Workout Templates (seeded, never mutated at runtime) ────────────────────
+model WorkoutTemplate {
+  id        String             @id @default(cuid())
+  name      String
+  emoji     String             @default("💪")
+  order     Int                @default(0)
+  exercises TemplateExercise[]
+  workouts  Workout[]
+}
+
+// Each exercise slot in a template (defines target, not logged values)
+model TemplateExercise {
+  id         String          @id @default(cuid())
+  name       String
+  sets       Int
+  repsTarget String          // e.g. "10-12", "12", "45s", "20 min @ 10%"
+  notes      String?
+  order      Int
+  templateId String
+  template   WorkoutTemplate @relation(fields: [templateId], references: [id])
+}
+
+// ─── Logged Workouts ─────────────────────────────────────────────────────────
+model Workout {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id])
+  templateId  String?
+  template    WorkoutTemplate?  @relation(fields: [templateId], references: [id])
+  completedAt DateTime?         // null = workout still in progress
+  createdAt   DateTime          @default(now())
+  exercises   WorkoutExercise[]
+}
+
+// A specific exercise within a logged workout session
+model WorkoutExercise {
+  id        String   @id @default(cuid())
+  workoutId String
+  workout   Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  name      String
+  order     Int
+  sets      Set[]
+}
+
+// Individual set log: weight + reps OR duration for timed exercises
+model Set {
+  id         String          @id @default(cuid())
+  exerciseId String
+  exercise   WorkoutExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  setNumber  Int
+  weight     Float?          // kg
+  reps       Int?
+  duration   Int?            // seconds (for planks, treadmill, etc.)
+  completed  Boolean         @default(false)
+}

@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ── Dark theme (always on) ──────────────────────────────── */
+  :root {
+    --background: 222 20% 8%;
+    --foreground: 210 20% 95%;
+
+    --card: 222 18% 11%;
+    --card-foreground: 210 20% 95%;
+
+    --primary: 258 90% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 222 18% 16%;
+    --secondary-foreground: 210 20% 90%;
+
+    --muted: 222 18% 16%;
+    --muted-foreground: 220 10% 55%;
+
+    --accent: 222 18% 20%;
+    --accent-foreground: 210 20% 95%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 18% 18%;
+    --input: 222 18% 18%;
+    --ring: 258 90% 65%;
+
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Prevent iOS tap highlight */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Larger tap targets on mobile */
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+}

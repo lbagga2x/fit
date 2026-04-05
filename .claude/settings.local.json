@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npm run:*)",
+      "Bash(vercel:*)",
+      "Bash(git:*)"
+    ]
+  }
+}
