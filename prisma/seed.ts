@@ -5,7 +5,8 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Seeding database...");
 
-  // Clear existing seed data
+  // Clear existing seed data (children before parents to satisfy FK constraints)
+  await prisma.templateExercise.deleteMany();
   await prisma.workoutTemplate.deleteMany();
 
   const templates = [
