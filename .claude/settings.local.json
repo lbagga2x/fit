@@ -6,7 +6,10 @@
       "Bash(npx tsx:*)",
       "Bash(npm run:*)",
       "Bash(vercel:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(gh repo:*)",
+      "Bash(npx vercel:*)",
+      "Bash(npx vercel@latest:*)"
     ]
   }
 }
