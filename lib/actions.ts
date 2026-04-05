@@ -3,14 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "./prisma";
+import { auth } from "@/auth";
 import { toLocalDateStr } from "./utils";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-async function getOrCreateUser() {
-  let user = await prisma.user.findFirst();
-  if (!user) user = await prisma.user.create({ data: {} });
-  return user;
+async function getCurrentUserId(): Promise<string> {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  return session.user.id;
 }
 
 // ─── Start Workout ───────────────────────────────────────────────────────────
@@ -21,7 +22,7 @@ async function getOrCreateUser() {
  * session for that exercise name (frictionless logging).
  */
 export async function startWorkout(templateId: string) {
-  const user = await getOrCreateUser();
+  const userId = await getCurrentUserId();
 
   const template = await prisma.workoutTemplate.findUniqueOrThrow({
     where: { id: templateId },
@@ -36,7 +37,7 @@ export async function startWorkout(templateId: string) {
           completed: true,
           exercise: {
             name: ex.name,
-            workout: { userId: user.id, completedAt: { not: null } },
+            workout: { userId, completedAt: { not: null } },
           },
         },
         orderBy: { exercise: { workout: { completedAt: "desc" } } },
@@ -53,7 +54,7 @@ export async function startWorkout(templateId: string) {
 
   const workout = await prisma.workout.create({
     data: {
-      userId: user.id,
+      userId,
       templateId,
       exercises: {
         create: template.exercises.map((ex) => ({
@@ -138,16 +139,15 @@ export async function cancelWorkout(workoutId: string) {
 // ─── Dashboard Data ───────────────────────────────────────────────────────────
 
 export async function getStreak(): Promise<number> {
-  const user = await prisma.user.findFirst();
-  if (!user) return 0;
+  const userId = await getCurrentUserId();
 
   const workouts = await prisma.workout.findMany({
-    where: { userId: user.id, completedAt: { not: null } },
+    where: { userId, completedAt: { not: null } },
     orderBy: { completedAt: "desc" },
     select: { completedAt: true },
   });
 
-  if (workouts.length === 0) return 0;
+  if (!workouts.length) return 0;
 
   // Collect unique workout days (local date strings)
   const workoutDays = new Set(
@@ -176,11 +176,10 @@ export async function getStreak(): Promise<number> {
 }
 
 export async function getRecentWorkouts() {
-  const user = await prisma.user.findFirst();
-  if (!user) return [];
+  const userId = await getCurrentUserId();
 
   return prisma.workout.findMany({
-    where: { userId: user.id, completedAt: { not: null } },
+    where: { userId, completedAt: { not: null } },
     orderBy: { completedAt: "desc" },
     take: 5,
     include: {
@@ -191,11 +190,10 @@ export async function getRecentWorkouts() {
 }
 
 export async function getInProgressWorkout() {
-  const user = await prisma.user.findFirst();
-  if (!user) return null;
+  const userId = await getCurrentUserId();
 
   return prisma.workout.findFirst({
-    where: { userId: user.id, completedAt: null },
+    where: { userId, completedAt: null },
     orderBy: { createdAt: "desc" },
     include: { template: { select: { name: true, emoji: true } } },
   });
@@ -316,11 +314,10 @@ export async function addExerciseToWorkout(
 // ─── Progress / Graphs ───────────────────────────────────────────────────────
 
 export async function getExerciseSummaries() {
-  const user = await prisma.user.findFirst();
-  if (!user) return [];
+  const userId = await getCurrentUserId();
 
   const rows = await prisma.workoutExercise.findMany({
-    where: { workout: { userId: user.id, completedAt: { not: null } } },
+    where: { workout: { userId, completedAt: { not: null } } },
     include: {
       sets: { where: { completed: true } },
       workout: { select: { completedAt: true } },
@@ -369,13 +366,12 @@ export type ProgressPoint = {
 export async function getExerciseProgressData(
   exerciseName: string
 ): Promise<ProgressPoint[]> {
-  const user = await prisma.user.findFirst();
-  if (!user) return [];
+  const userId = await getCurrentUserId();
 
   const rows = await prisma.workoutExercise.findMany({
     where: {
       name: exerciseName,
-      workout: { userId: user.id, completedAt: { not: null } },
+      workout: { userId, completedAt: { not: null } },
     },
     include: {
       sets: { where: { completed: true }, orderBy: { setNumber: "asc" } },
@@ -409,11 +405,10 @@ export async function getExerciseProgressData(
 // ─── History ──────────────────────────────────────────────────────────────────
 
 export async function getAllWorkouts() {
-  const user = await prisma.user.findFirst();
-  if (!user) return [];
+  const userId = await getCurrentUserId();
 
   return prisma.workout.findMany({
-    where: { userId: user.id, completedAt: { not: null } },
+    where: { userId, completedAt: { not: null } },
     orderBy: { completedAt: "desc" },
     include: {
       template: { select: { name: true, emoji: true } },

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Activity, ChevronRight, Clock, Dumbbell, TrendingUp } from "lucide-react";
+import { Activity, ChevronRight, Clock, Dumbbell, LogOut, TrendingUp } from "lucide-react";
+import { auth, signOut } from "@/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,10 @@ import { formatDate } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
+  const session = await auth();
+  const user = session?.user;
+  const firstName = user?.name?.split(" ")[0] ?? "there";
+
   const [streak, recentWorkouts, templates, inProgress] = await Promise.all([
     getStreak(),
     getRecentWorkouts(),
@@ -29,14 +34,39 @@ export default async function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-foreground">
-            Hey Lav 👋
+            Hey {firstName} 👋
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             GoodLife · Body Recomp
           </p>
         </div>
-        <div className="h-10 w-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
-          <span className="text-lg">🏋️</span>
+        <div className="flex items-center gap-2">
+          {user?.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.image}
+              alt={user.name ?? ""}
+              className="h-10 w-10 rounded-full border border-border"
+            />
+          ) : (
+            <div className="h-10 w-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+              <span className="text-lg">🏋️</span>
+            </div>
+          )}
+          <form
+            action={async () => {
+              "use server";
+              await signOut({ redirectTo: "/login" });
+            }}
+          >
+            <button
+              type="submit"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </form>
         </div>
       </div>
 

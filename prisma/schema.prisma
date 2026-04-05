@@ -1,4 +1,3 @@
-// Task 1: Prisma Schema
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,16 +8,55 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─── User ────────────────────────────────────────────────────────────────────
+// ─── Auth.js required models ──────────────────────────────────────────────────
 model User {
-  id        String    @id @default(cuid())
-  name      String    @default("Lav")
-  weight    Float     @default(73)
-  createdAt DateTime  @default(now())
-  workouts  Workout[]
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  weight        Float     @default(73)
+  createdAt     DateTime  @default(now())
+  accounts      Account[]
+  sessions      Session[]
+  workouts      Workout[]
 }
 
-// ─── Workout Templates (seeded, never mutated at runtime) ────────────────────
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Workout Templates (global, not user-specific) ───────────────────────────
 model WorkoutTemplate {
   id        String             @id @default(cuid())
   name      String
@@ -28,19 +66,18 @@ model WorkoutTemplate {
   workouts  Workout[]
 }
 
-// Each exercise slot in a template (defines target, not logged values)
 model TemplateExercise {
   id         String          @id @default(cuid())
   name       String
   sets       Int
-  repsTarget String          // e.g. "10-12", "12", "45s", "20 min @ 10%"
+  repsTarget String
   notes      String?
   order      Int
   templateId String
   template   WorkoutTemplate @relation(fields: [templateId], references: [id])
 }
 
-// ─── Exercise Library (canonical names to prevent typos) ─────────────────────
+// ─── Exercise Library (global, shared) ───────────────────────────────────────
 model ExerciseLibrary {
   id        String   @id @default(cuid())
   name      String   @unique
@@ -54,12 +91,11 @@ model Workout {
   user        User              @relation(fields: [userId], references: [id])
   templateId  String?
   template    WorkoutTemplate?  @relation(fields: [templateId], references: [id])
-  completedAt DateTime?         // null = workout still in progress
+  completedAt DateTime?
   createdAt   DateTime          @default(now())
   exercises   WorkoutExercise[]
 }
 
-// A specific exercise within a logged workout session
 model WorkoutExercise {
   id        String   @id @default(cuid())
   workoutId String
@@ -69,14 +105,13 @@ model WorkoutExercise {
   sets      Set[]
 }
 
-// Individual set log: weight + reps OR duration for timed exercises
 model Set {
   id         String          @id @default(cuid())
   exerciseId String
   exercise   WorkoutExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
   setNumber  Int
-  weight     Float?          // kg
+  weight     Float?
   reps       Int?
-  duration   Int?            // seconds (for planks, treadmill, etc.)
+  duration   Int?
   completed  Boolean         @default(false)
 }
