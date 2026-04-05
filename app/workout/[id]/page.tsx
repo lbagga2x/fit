@@ -6,6 +6,7 @@ import { ActiveWorkoutClient } from "@/components/active-workout-client";
 import {
   getActiveWorkout,
   getTemplateExerciseTargets,
+  getExerciseLibrary,
 } from "@/lib/actions";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +32,12 @@ export default async function WorkoutPage({ params }: Props) {
     );
   }
 
-  const targets = workout.templateId
-    ? await getTemplateExerciseTargets(workout.templateId)
-    : {};
+  const [targets, exerciseLibrary] = await Promise.all([
+    workout.templateId
+      ? getTemplateExerciseTargets(workout.templateId)
+      : Promise.resolve({}),
+    getExerciseLibrary(),
+  ]);
 
   // Elapsed time display (rough — based on createdAt)
   const startedAt = new Date(workout.createdAt);
@@ -75,6 +79,7 @@ export default async function WorkoutPage({ params }: Props) {
         workoutId={workout.id}
         exercises={workout.exercises}
         targets={targets}
+        exerciseLibrary={exerciseLibrary}
       />
     </div>
   );

@@ -40,6 +40,13 @@ model TemplateExercise {
   template   WorkoutTemplate @relation(fields: [templateId], references: [id])
 }
 
+// ─── Exercise Library (canonical names to prevent typos) ─────────────────────
+model ExerciseLibrary {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
 // ─── Logged Workouts ─────────────────────────────────────────────────────────
 model Workout {
   id          String            @id @default(cuid())

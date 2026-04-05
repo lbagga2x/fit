@@ -103,6 +103,16 @@ async function main() {
     });
   }
 
+  // Seed exercise library with all template exercise names
+  const allNames = [...new Set(templates.flatMap((t) => t.exercises.map((e) => e.name)))];
+  for (const name of allNames) {
+    await prisma.exerciseLibrary.upsert({
+      where: { name },
+      create: { name },
+      update: {},
+    });
+  }
+
   // Create default user
   const existingUser = await prisma.user.findFirst();
   if (!existingUser) {
@@ -111,7 +121,7 @@ async function main() {
     });
   }
 
-  console.log("✅ Seed complete — 4 templates + user created.");
+  console.log(`✅ Seed complete — 4 templates + ${allNames.length} exercises in library + user.`);
 }
 
 main()

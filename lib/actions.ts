@@ -208,6 +208,16 @@ export async function getTemplates() {
   });
 }
 
+// ─── Exercise Library ─────────────────────────────────────────────────────────
+
+export async function getExerciseLibrary(): Promise<string[]> {
+  const rows = await prisma.exerciseLibrary.findMany({
+    orderBy: { name: "asc" },
+    select: { name: true },
+  });
+  return rows.map((r) => r.name);
+}
+
 // ─── Add custom exercise to in-progress workout ───────────────────────────────
 
 export async function addExerciseToWorkout(
@@ -215,6 +225,15 @@ export async function addExerciseToWorkout(
   name: string,
   numSets: number
 ) {
+  const trimmed = name.trim();
+
+  // Upsert into library — guarantees canonical name is stored for future sessions
+  await prisma.exerciseLibrary.upsert({
+    where: { name: trimmed },
+    create: { name: trimmed },
+    update: {},
+  });
+
   const last = await prisma.workoutExercise.findFirst({
     where: { workoutId },
     orderBy: { order: "desc" },
@@ -224,7 +243,7 @@ export async function addExerciseToWorkout(
   const exercise = await prisma.workoutExercise.create({
     data: {
       workoutId,
-      name: name.trim(),
+      name: trimmed,
       order: (last?.order ?? -1) + 1,
       sets: {
         create: Array.from({ length: numSets }, (_, i) => ({

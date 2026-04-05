@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { CheckCircle2, Circle, Loader2, Plus, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ExerciseCombobox } from "@/components/exercise-combobox";
 import {
   saveWorkout,
   cancelWorkout,
@@ -40,6 +41,7 @@ type Props = {
   workoutId: string;
   exercises: ExerciseData[];
   targets: TargetMap;
+  exerciseLibrary: string[];
 };
 
 type LocalSet = {
@@ -59,7 +61,7 @@ function emptyLocalSet(): LocalSet {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, targets }: Props) {
+export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, targets, exerciseLibrary }: Props) {
   // Exercise list lives in state so we can append custom ones without a reload
   const [exercises, setExercises] = useState<ExerciseData[]>(initialExercises);
 
@@ -89,7 +91,6 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
   const [newName, setNewName] = useState("");
   const [newSets, setNewSets] = useState("3");
   const [addPending, startAdd] = useTransition();
-  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [savePending, startSave] = useTransition();
   const [cancelPending, startCancel] = useTransition();
@@ -123,7 +124,6 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
     setNewName("");
     setNewSets("3");
     setShowAddForm(true);
-    setTimeout(() => nameInputRef.current?.focus(), 50);
   }
 
   function handleAdd() {
@@ -308,14 +308,10 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
             <CardTitle className="text-base">Add Exercise</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Input
-              ref={nameInputRef}
-              placeholder="Exercise name (e.g. Cable Fly)"
+            <ExerciseCombobox
+              library={exerciseLibrary}
               value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-              disabled={addPending}
-              className="h-11 text-base"
+              onChange={setNewName}
             />
             <div className="flex items-center gap-3">
               <label className="text-sm text-muted-foreground shrink-0">Sets</label>
