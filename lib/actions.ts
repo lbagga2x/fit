@@ -208,6 +208,62 @@ export async function getTemplates() {
   });
 }
 
+// ─── Create / Delete workout template ────────────────────────────────────────
+
+export type TemplateExerciseInput = {
+  name: string;
+  sets: number;
+  repsTarget: string;
+  notes?: string;
+  order: number;
+};
+
+export async function createWorkoutTemplate(data: {
+  name: string;
+  emoji: string;
+  exercises: TemplateExerciseInput[];
+}) {
+  const last = await prisma.workoutTemplate.findFirst({
+    orderBy: { order: "desc" },
+    select: { order: true },
+  });
+
+  await prisma.workoutTemplate.create({
+    data: {
+      name: data.name.trim(),
+      emoji: data.emoji,
+      order: (last?.order ?? -1) + 1,
+      exercises: {
+        create: data.exercises.map((ex) => ({
+          name: ex.name.trim(),
+          sets: ex.sets,
+          repsTarget: ex.repsTarget.trim(),
+          notes: ex.notes?.trim() || null,
+          order: ex.order,
+        })),
+      },
+    },
+  });
+
+  // Upsert any new exercise names into the library
+  for (const ex of data.exercises) {
+    await prisma.exerciseLibrary.upsert({
+      where: { name: ex.name.trim() },
+      create: { name: ex.name.trim() },
+      update: {},
+    });
+  }
+
+  revalidatePath("/");
+  redirect("/");
+}
+
+export async function deleteWorkoutTemplate(templateId: string) {
+  await prisma.templateExercise.deleteMany({ where: { templateId } });
+  await prisma.workoutTemplate.delete({ where: { id: templateId } });
+  revalidatePath("/");
+}
+
 // ─── Exercise Library ─────────────────────────────────────────────────────────
 
 export async function getExerciseLibrary(): Promise<string[]> {
