@@ -1,24 +1,28 @@
-import { auth } from "@/auth";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth;
+// Public paths — never redirect these
+const PUBLIC_PREFIXES = ["/login", "/api/auth", "/_next", "/favicon.ico"];
+
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Always allow auth API routes and login page
-  if (pathname.startsWith("/api/auth") || pathname === "/login") {
+  // Always let public paths through first — prevents any redirect loop
+  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
-  // Redirect unauthenticated users to login
-  if (!isLoggedIn) {
-    const loginUrl = new URL("/login", req.nextUrl.origin);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+  // NextAuth v5 sets one of these two cookie names depending on HTTPS
+  const sessionCookie =
+    req.cookies.get("authjs.session-token") ??
+    req.cookies.get("__Secure-authjs.session-token");
+
+  if (!sessionCookie) {
+    const loginUrl = new URL("/login", req.url);
     return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
