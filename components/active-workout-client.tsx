@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, Circle, Loader2, MessageSquare, Plus, Save, X } from "lucide-react";
+import { CheckCircle2, Circle, Info, Loader2, MessageSquare, Plus, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExerciseCombobox } from "@/components/exercise-combobox";
+import { ExerciseGuideModal } from "@/components/exercise-guide-modal";
 import {
   saveWorkout,
   cancelWorkout,
@@ -43,6 +44,7 @@ type Props = {
   exercises: ExerciseData[];
   targets: TargetMap;
   exerciseLibrary: string[];
+  gifUrls: Record<string, string | null>;
 };
 
 type LocalSet = {
@@ -62,7 +64,7 @@ function emptyLocalSet(): LocalSet {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, targets, exerciseLibrary }: Props) {
+export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, targets, exerciseLibrary, gifUrls }: Props) {
   // Exercise list lives in state so we can append custom ones without a reload
   const [exercises, setExercises] = useState<ExerciseData[]>(initialExercises);
 
@@ -104,6 +106,9 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
 
   const [savePending, startSave] = useTransition();
   const [cancelPending, startCancel] = useTransition();
+
+  // Exercise guide modal
+  const [guideExercise, setGuideExercise] = useState<{ name: string; gifUrl: string | null } | null>(null);
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const totalSets = exercises.reduce((n, ex) => n + ex.sets.length, 0);
@@ -215,11 +220,20 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-2">
                 <CardTitle className="text-base leading-snug">{ex.name}</CardTitle>
-                {!target && (
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-primary bg-primary/15 px-2 py-0.5 rounded-full shrink-0 mt-0.5">
-                    Custom
-                  </span>
-                )}
+                <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                  {!target && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-primary bg-primary/15 px-2 py-0.5 rounded-full">
+                      Custom
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setGuideExercise({ name: ex.name, gifUrl: gifUrls[ex.name] ?? null })}
+                    className="p-1 rounded-md text-muted-foreground hover:text-primary transition-colors"
+                    aria-label={`How to do ${ex.name}`}
+                  >
+                    <Info className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
               {target && (
                 <p className="text-xs text-muted-foreground">
@@ -394,6 +408,16 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
           <Plus className="h-4 w-4" />
           Add Exercise
         </button>
+      )}
+
+      {/* ── Exercise guide modal ─────────────────────────────────────────── */}
+      {guideExercise && (
+        <ExerciseGuideModal
+          name={guideExercise.name}
+          gifUrl={guideExercise.gifUrl}
+          open={true}
+          onClose={() => setGuideExercise(null)}
+        />
       )}
 
       {/* ── Action buttons ───────────────────────────────────────────────── */}

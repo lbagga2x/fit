@@ -7,6 +7,7 @@ import {
   getActiveWorkout,
   getTemplateExerciseTargets,
   getExerciseLibrary,
+  getExerciseGifUrls,
 } from "@/lib/actions";
 
 export const dynamic = "force-dynamic";
@@ -32,11 +33,13 @@ export default async function WorkoutPage({ params }: Props) {
     );
   }
 
-  const [targets, exerciseLibrary] = await Promise.all([
+  const exerciseNames = workout.exercises.map((e) => e.name);
+  const [targets, exerciseLibrary, gifUrls] = await Promise.all([
     workout.templateId
       ? getTemplateExerciseTargets(workout.templateId)
       : Promise.resolve({}),
     getExerciseLibrary(),
+    getExerciseGifUrls(exerciseNames),
   ]);
 
   // Elapsed time display (rough — based on createdAt)
@@ -80,6 +83,7 @@ export default async function WorkoutPage({ params }: Props) {
         exercises={workout.exercises}
         targets={targets}
         exerciseLibrary={exerciseLibrary}
+        gifUrls={gifUrls}
       />
     </div>
   );

@@ -104,13 +104,35 @@ async function main() {
     });
   }
 
-  // Seed exercise library with all template exercise names
+  // Seed exercise library with GIF URLs from free-exercise-db
+  const BASE = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
+  const exerciseGifs: Record<string, string> = {
+    "Leg Press":             BASE + "Leg_Press/0.jpg",
+    "Machine Chest Press":   BASE + "Leverage_Chest_Press/0.jpg",
+    "DB Shoulder Press":     BASE + "Dumbbell_Shoulder_Press/0.jpg",
+    "Lat Pulldowns":         BASE + "Wide-Grip_Lat_Pulldown/0.jpg",
+    "Plank":                 BASE + "Plank/0.jpg",
+    "Goblet Squat":          BASE + "Goblet_Squat/0.jpg",
+    "Seated Cable Row":      BASE + "Seated_Cable_Rows/0.jpg",
+    "DB Bench Press":        BASE + "Dumbbell_Bench_Press/0.jpg",
+    "DB Bicep Curls":        BASE + "Dumbbell_Bicep_Curl/0.jpg",
+    "Tricep Rope Pushdowns": BASE + "Triceps_Pushdown_-_Rope_Attachment/0.jpg",
+    "Lying Leg Raises":      BASE + "Flat_Bench_Lying_Leg_Raise/0.jpg",
+    "Bicycle Crunches":      BASE + "Cable_Crunch/0.jpg",
+    "Incline Treadmill Walk":BASE + "Jogging_Treadmill/0.jpg",
+    "Lateral Raises":        BASE + "Cable_Seated_Lateral_Raise/0.jpg",
+    "Incline DB Press":      BASE + "Incline_Dumbbell_Press/0.jpg",
+    "Face Pulls":            BASE + "Face_Pull/0.jpg",
+    "Hammer Curls":          BASE + "Hammer_Curls/0.jpg",
+  };
+
   const allNames = [...new Set(templates.flatMap((t) => t.exercises.map((e) => e.name)))];
   for (const name of allNames) {
+    const gifUrl = exerciseGifs[name] ?? null;
     await prisma.exerciseLibrary.upsert({
       where: { name },
-      create: { name },
-      update: {},
+      create: { name, gifUrl },
+      update: { gifUrl },
     });
   }
 

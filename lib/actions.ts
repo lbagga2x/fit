@@ -476,3 +476,12 @@ export async function getTemplateExerciseTargets(templateId: string) {
   });
   return Object.fromEntries(exercises.map((e) => [e.name, e]));
 }
+
+// Get gifUrls from ExerciseLibrary keyed by name
+export async function getExerciseGifUrls(names: string[]): Promise<Record<string, string | null>> {
+  const entries = await prisma.exerciseLibrary.findMany({
+    where: { name: { in: names } },
+    select: { name: true, gifUrl: true },
+  });
+  return Object.fromEntries(entries.map((e) => [e.name, e.gifUrl]));
+}
