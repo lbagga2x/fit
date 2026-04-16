@@ -104,6 +104,11 @@ export default async function WorkoutDetailPage({ params }: Props) {
                   {exCompleted}/{ex.sets.length}
                 </Badge>
               </div>
+              {ex.notes && (
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  {ex.notes}
+                </p>
+              )}
             </CardHeader>
 
             <CardContent>

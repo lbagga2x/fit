@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, Circle, Loader2, Plus, Save, X } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, MessageSquare, Plus, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +29,7 @@ type ExerciseData = {
   id: string;
   name: string;
   order: number;
+  notes: string | null;
   sets: SetData[];
 };
 
@@ -84,6 +85,15 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
           ),
         ])
       )
+  );
+
+  // Per-exercise notes, keyed by exerciseId
+  const [notes, setNotes] = useState<Record<string, string>>(
+    () => Object.fromEntries(initialExercises.map((ex) => [ex.id, ex.notes ?? ""]))
+  );
+  // Track which exercise note fields are expanded
+  const [notesOpen, setNotesOpen] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(initialExercises.map((ex) => [ex.id, !!ex.notes]))
   );
 
   // Add-exercise form state
@@ -142,6 +152,8 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
         ...prev,
         [ex.id]: Object.fromEntries(ex.sets.map((s) => [s.id, emptyLocalSet()])),
       }));
+      setNotes((prev) => ({ ...prev, [ex.id]: "" }));
+      setNotesOpen((prev) => ({ ...prev, [ex.id]: false }));
 
       setShowAddForm(false);
     });
@@ -151,6 +163,7 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
   function handleSave() {
     const payload: ExerciseInput[] = exercises.map((ex) => ({
       exerciseId: ex.id,
+      notes: notes[ex.id] ?? "",
       sets: ex.sets.map((s) => {
         const ls = localData[ex.id]?.[s.id];
         return {
@@ -216,7 +229,7 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
               )}
             </CardHeader>
 
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-2 pb-3">
               {/* Column headers */}
               <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 text-xs font-medium text-muted-foreground mb-1">
                 <span className="text-center">Set</span>
@@ -296,6 +309,27 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
                   </div>
                 );
               })}
+
+              {/* Notes */}
+              {notesOpen[ex.id] ? (
+                <div className="pt-1">
+                  <textarea
+                    rows={2}
+                    placeholder="Add a note for this exercise…"
+                    className="w-full rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                    value={notes[ex.id] ?? ""}
+                    onChange={(e) => setNotes((prev) => ({ ...prev, [ex.id]: e.target.value }))}
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={() => setNotesOpen((prev) => ({ ...prev, [ex.id]: true }))}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors pt-1"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Add note
+                </button>
+              )}
             </CardContent>
           </Card>
         );

@@ -91,6 +91,7 @@ export type SetInput = {
 
 export type ExerciseInput = {
   exerciseId: string;
+  notes: string;
   sets: SetInput[];
 };
 
@@ -116,8 +117,16 @@ export async function saveWorkout(
     )
   );
 
+  const noteUpdates = exercises.map((ex) =>
+    prisma.workoutExercise.update({
+      where: { id: ex.exerciseId },
+      data: { notes: ex.notes || null },
+    })
+  );
+
   await prisma.$transaction([
     ...setUpdates,
+    ...noteUpdates,
     prisma.workout.update({
       where: { id: workoutId },
       data: { completedAt: new Date() },

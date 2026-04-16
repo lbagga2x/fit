@@ -102,6 +102,7 @@ model WorkoutExercise {
   workout   Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   name      String
   order     Int
+  notes     String?
   sets      Set[]
 }
 
