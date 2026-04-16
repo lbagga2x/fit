@@ -1,5 +1,6 @@
 "use server";
 
+import Anthropic from "@anthropic-ai/sdk";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "./prisma";
@@ -484,4 +485,76 @@ export async function getExerciseGifUrls(names: string[]): Promise<Record<string
     select: { name: true, gifUrl: true },
   });
   return Object.fromEntries(entries.map((e) => [e.name, e.gifUrl]));
+}
+
+// ─── AI Weight Recommendation ─────────────────────────────────────────────────
+
+export async function getWeightRecommendation(
+  exerciseName: string,
+  repsTarget: string
+): Promise<string> {
+  const userId = await getCurrentUserId();
+
+  // Fetch last 3 completed sessions containing this exercise
+  const pastSessions = await prisma.workoutExercise.findMany({
+    where: {
+      name: exerciseName,
+      workout: { userId, completedAt: { not: null } },
+    },
+    include: {
+      sets: { orderBy: { setNumber: "asc" } },
+      workout: { select: { completedAt: true } },
+    },
+    orderBy: { workout: { completedAt: "desc" } },
+    take: 3,
+  });
+
+  if (pastSessions.length === 0) {
+    return "No history yet — start light, nail your form, and increase next session!";
+  }
+
+  // Format history for Claude
+  const historyText = pastSessions
+    .map((session, i) => {
+      const date = session.workout.completedAt?.toLocaleDateString("en-AU", {
+        day: "numeric",
+        month: "short",
+      });
+      const completedSets = session.sets.filter((s) => s.completed);
+      const setLines = completedSets
+        .map((s) =>
+          s.weight && s.reps
+            ? `${s.weight}kg × ${s.reps} reps`
+            : s.duration
+            ? `${s.duration}s`
+            : "no data"
+        )
+        .join(", ");
+      return `Session ${i + 1} (${date}): ${setLines || "no completed sets"}`;
+    })
+    .join("\n");
+
+  const client = new Anthropic();
+
+  const response = await client.messages.create({
+    model: "claude-opus-4-6",
+    max_tokens: 120,
+    system: [
+      {
+        type: "text",
+        text: `You are a concise personal trainer AI inside a workout app. The user is Lav (34M, 73kg, body recomposition goal). Give a single short recommendation for what weight to use today — max 2 sentences, be specific with numbers. Apply progressive overload: if all sets were completed at or above the rep target, suggest a small increase (2.5–5kg). If not all sets were completed, suggest holding or slightly reducing. Be encouraging.`,
+        cache_control: { type: "ephemeral" },
+      },
+    ],
+    messages: [
+      {
+        role: "user",
+        content: `Exercise: ${exerciseName}\nRep target: ${repsTarget}\nRecent history:\n${historyText}\n\nWhat weight should I use today?`,
+      },
+    ],
+  });
+
+  const textBlock = response.content.find((b) => b.type === "text");
+  return (textBlock as Anthropic.TextBlock | undefined)?.text ??
+    "Start with your usual weight and adjust based on how you feel!";
 }

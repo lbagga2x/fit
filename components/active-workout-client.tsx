@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, Circle, Info, Loader2, MessageSquare, Plus, Save, X } from "lucide-react";
+import { CheckCircle2, Circle, Info, Loader2, MessageSquare, Plus, Save, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import {
   saveWorkout,
   cancelWorkout,
   addExerciseToWorkout,
+  getWeightRecommendation,
   type ExerciseInput,
 } from "@/lib/actions";
 import { cn } from "@/lib/utils";
@@ -110,6 +111,10 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
   // Exercise guide modal
   const [guideExercise, setGuideExercise] = useState<{ name: string; gifUrl: string | null } | null>(null);
 
+  // AI weight recommendations — keyed by exerciseId
+  const [aiTips, setAiTips] = useState<Record<string, string>>({});
+  const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
+
   // ── Derived stats ──────────────────────────────────────────────────────────
   const totalSets = exercises.reduce((n, ex) => n + ex.sets.length, 0);
   const completedCount = exercises.reduce(
@@ -191,6 +196,17 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
     });
   }
 
+  async function fetchAiTip(exId: string, exName: string, repsTarget: string) {
+    if (aiTips[exId] || aiLoading[exId]) return;
+    setAiLoading((prev) => ({ ...prev, [exId]: true }));
+    try {
+      const tip = await getWeightRecommendation(exName, repsTarget);
+      setAiTips((prev) => ({ ...prev, [exId]: tip }));
+    } finally {
+      setAiLoading((prev) => ({ ...prev, [exId]: false }));
+    }
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4">
@@ -227,6 +243,17 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
                     </span>
                   )}
                   <button
+                    onClick={() => fetchAiTip(ex.id, ex.name, target?.repsTarget ?? "")}
+                    className="p-1 rounded-md text-muted-foreground hover:text-primary transition-colors"
+                    aria-label={`AI weight tip for ${ex.name}`}
+                    disabled={aiLoading[ex.id]}
+                  >
+                    {aiLoading[ex.id]
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Sparkles className="h-4 w-4" />
+                    }
+                  </button>
+                  <button
                     onClick={() => setGuideExercise({ name: ex.name, gifUrl: gifUrls[ex.name] ?? null })}
                     className="p-1 rounded-md text-muted-foreground hover:text-primary transition-colors"
                     aria-label={`How to do ${ex.name}`}
@@ -240,6 +267,12 @@ export function ActiveWorkoutClient({ workoutId, exercises: initialExercises, ta
                   Target: {ex.sets.length}×{target.repsTarget}
                   {target.notes ? ` · ${target.notes}` : ""}
                 </p>
+              )}
+              {aiTips[ex.id] && (
+                <div className="flex items-start gap-1.5 rounded-lg bg-primary/10 border border-primary/20 px-3 py-2 mt-1">
+                  <Sparkles className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                  <p className="text-xs text-primary leading-relaxed">{aiTips[ex.id]}</p>
+                </div>
               )}
             </CardHeader>
 
