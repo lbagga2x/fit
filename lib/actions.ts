@@ -136,6 +136,15 @@ export async function cancelWorkout(workoutId: string) {
   redirect("/");
 }
 
+// ─── Delete completed workout ─────────────────────────────────────────────────
+
+export async function deleteWorkout(workoutId: string) {
+  const userId = await getCurrentUserId();
+  await prisma.workout.delete({ where: { id: workoutId, userId } });
+  revalidatePath("/history");
+  revalidatePath("/");
+}
+
 // ─── Dashboard Data ───────────────────────────────────────────────────────────
 
 export async function getStreak(): Promise<number> {

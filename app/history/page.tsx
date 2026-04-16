@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAllWorkouts } from "@/lib/actions";
 import { formatDate, toLocalDateStr } from "@/lib/utils";
+import { DeleteWorkoutButton } from "@/components/delete-workout-button";
 
 export const dynamic = "force-dynamic";
 
@@ -82,48 +83,51 @@ export default async function HistoryPage() {
                 const vol = totalVolume(w.exercises);
                 const done = completedSets(w.exercises);
                 const total = w.exercises.reduce((n, ex) => n + ex.sets.length, 0);
+                const radius =
+                  i === 0 && monthWorkouts.length === 1
+                    ? "0.75rem"
+                    : i === 0
+                    ? "0.75rem 0.75rem 0 0"
+                    : i === monthWorkouts.length - 1
+                    ? "0 0 0.75rem 0.75rem"
+                    : undefined;
 
                 return (
-                  <Link
-                    key={w.id}
-                    href={`/history/${w.id}`}
-                    className="flex items-center gap-4 px-4 py-3.5 hover:bg-accent/50 transition-colors active:bg-accent"
-                    style={{
-                      borderRadius:
-                        i === 0 && monthWorkouts.length === 1
-                          ? "0.75rem"
-                          : i === 0
-                          ? "0.75rem 0.75rem 0 0"
-                          : i === monthWorkouts.length - 1
-                          ? "0 0 0.75rem 0.75rem"
-                          : undefined,
-                    }}
-                  >
-                    <span className="text-2xl shrink-0">
-                      {w.template?.emoji ?? "💪"}
-                    </span>
+                  <div key={w.id} className="flex items-center" style={{ borderRadius: radius }}>
+                    <Link
+                      href={`/history/${w.id}`}
+                      className="flex flex-1 items-center gap-4 px-4 py-3.5 hover:bg-accent/50 transition-colors active:bg-accent min-w-0"
+                      style={{ borderRadius: radius }}
+                    >
+                      <span className="text-2xl shrink-0">
+                        {w.template?.emoji ?? "💪"}
+                      </span>
 
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">
-                        {w.template?.name ?? "Workout"}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {formatDate(new Date(w.completedAt!))}
-                        {" · "}
-                        {done}/{total} sets
-                        {vol > 0 && (
-                          <>
-                            {" · "}
-                            <span className="text-primary font-medium">
-                              {vol.toLocaleString()} kg vol
-                            </span>
-                          </>
-                        )}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {w.template?.name ?? "Workout"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {formatDate(new Date(w.completedAt!))}
+                          {" · "}
+                          {done}/{total} sets
+                          {vol > 0 && (
+                            <>
+                              {" · "}
+                              <span className="text-primary font-medium">
+                                {vol.toLocaleString()} kg vol
+                              </span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </Link>
+                    <div className="pr-3">
+                      <DeleteWorkoutButton workoutId={w.id} />
                     </div>
-
-                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </Link>
+                  </div>
                 );
               })}
             </CardContent>
